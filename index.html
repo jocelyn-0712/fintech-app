@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>政大財管 - 全方位個金助手</title>
+    <style>
+        :root { --primary-blue: #003366; --gold: #C5A059; --light-bg: #f4f7f6; }
+        body { font-family: 'PingFang TC', 'Microsoft JhengHei', sans-serif; background: var(--light-bg); margin: 0; padding: 20px; }
+        .container { max-width: 900px; margin: auto; }
+        .section { background: white; padding: 30px; border-radius: 15px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); margin-bottom: 20px; }
+        .hidden { display: none; }
+        h2 { color: var(--primary-blue); border-left: 5px solid var(--gold); padding-left: 15px; }
+        .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+        label { display: block; margin-bottom: 8px; font-weight: bold; color: #555; }
+        input, select { width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 8px; box-sizing: border-box; }
+        .card-container { display: flex; gap: 20px; justify-content: center; flex-wrap: wrap; margin-top: 30px; }
+        .card { background: white; border-radius: 15px; padding: 25px; width: 220px; text-align: center; 
+                box-shadow: 0 4px 15px rgba(0,0,0,0.1); cursor: pointer; transition: 0.3s; }
+        .card:hover { transform: translateY(-10px); border: 2px solid var(--gold); }
+        button { background: var(--primary-blue); color: white; border: none; padding: 12px 25px; border-radius: 25px; cursor: pointer; width: 100%; font-size: 16px; margin-top: 20px; }
+        .result-box { background: #eef5ff; padding: 20px; border-radius: 10px; margin-top: 20px; border-left: 5px solid var(--primary-blue); }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <div id="step-kyc" class="section">
+        <h2>👤 客戶基本資料分析</h2>
+        <div class="grid">
+            <div class="form-group"><label>年齡</label><input type="number" id="kyc-age"></div>
+            <div class="form-group">
+                <label>性別</label>
+                <select id="kyc-gender"><option value="男">男</option><option value="女">女</option></select>
+            </div>
+            <div class="form-group"><label>職業</label><input type="text" id="kyc-job"></div>
+            <div class="form-group">
+                <label>家庭狀況</label>
+                <select id="kyc-family">
+                    <option value="single">單身</option>
+                    <option value="married">已婚</option>
+                    <option value="kids">已婚有小孩</option>
+                </select>
+            </div>
+            <div class="form-group"><label>年收入 (萬)</label><input type="number" id="kyc-income"></div>
+            <div class="form-group"><label>被動收入 (萬/選填)</label><input type="number" id="kyc-passive"></div>
+        </div>
+        <button onclick="showMenu()">完成資料填寫，進入金融諮詢</button>
+    </div>
+
+    <div id="step-menu" class="hidden">
+        <h2 style="text-align:center;">您好 <span id="display-name">客戶</span>，請選擇諮詢項目</h2>
+        <div class="card-container">
+            <div class="card" onclick="showFeature('feature-housing')"><h3>🏠</h3><h4>房貸負擔能力</h4></div>
+            <div class="card" onclick="showFeature('feature-study')"><h3>🎓</h3><h4>留學與換匯規劃</h4></div>
+            <div class="card" onclick="showFeature('feature-invest')"><h3>📈</h3><h4>資產配置建議</h4></div>
+        </div>
+    </div>
+
+    <div id="feature-housing" class="section hidden">
+        <h2>🏠 購屋族房貸評估</h2>
+        <div class="grid">
+            <div class="form-group">
+                <label>定居地區</label>
+                <select id="area-select" onchange="updateCities()">
+                    <option value="">請選擇地區</option>
+                    <option value="north">北部地區</option>
+                    <option value="center">中部地區</option>
+                    <option value="south">南部地區</option>
+                    <option value="east">東部及離島</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label>縣市</label>
+                <select id="city-select"></select>
+            </div>
+        </div>
+        <button onclick="calcHousing()">開始評估負擔能力</button>
+        <div id="housing-result" class="result-box hidden"></div>
+        <button style="background:#666;" onclick="backToMenu()">回主選單</button>
+    </div>
+
+    <div id="feature-study" class="section hidden">
+        <h2>🎓 出國留學與換匯規劃</h2>
+        <div class="form-group">
+            <label>目標留學國家</label>
+            <select id="study-country">
+                <option value="300">美國 (預估 300萬/年)</option>
+                <option value="250">英國 (預估 250萬/年)</option>
+                <option value="150">日本 (預估 150萬/年)</option>
+            </select>
+        </div>
+        <button onclick="calcStudy()">計算準備金建議</button>
+        <div id="study-result" class="result-box hidden"></div>
+        <button style="background:#666;" onclick="backToMenu()">回主選單</button>
+    </div>
+</div>
+
+<script>
+    const cityData = {
+        north: ["台北市", "新北市", "桃園市", "新竹縣市"],
+        center: ["台中市", "彰化縣", "南投縣", "苗栗縣"],
+        south: ["高雄市", "台南市", "嘉義縣市", "屏東縣"],
+        east: ["宜蘭縣", "花蓮縣", "台東縣", "澎金馬"]
+    };
+
+    function updateCities() {
+        const area = document.getElementById('area-select').value;
+        const citySelect = document.getElementById('city-select');
+        citySelect.innerHTML = "";
+        if(area) {
+            cityData[area].forEach(city => {
+                let opt = document.createElement('option');
+                opt.value = city;
+                opt.innerHTML = city;
+                citySelect.appendChild(opt);
+            });
+        }
+    }
+
+    function showMenu() {
+        const income = document.getElementById('kyc-income').value;
+        if(!income) return alert("請填入年收入以利分析");
+        document.getElementById('step-kyc').classList.add('hidden');
+        document.getElementById('step-menu').classList.remove('hidden');
+    }
+
+    function showFeature(id) {
+        document.getElementById('step-menu').classList.add('hidden');
+        document.getElementById(id).classList.remove('hidden');
+    }
+
+    function backToMenu() {
+        document.querySelectorAll('.section, #step-menu').forEach(el => el.classList.add('hidden'));
+        document.getElementById('step-menu').classList.remove('hidden');
+    }
+
+    function calcHousing() {
+        const income = parseFloat(document.getElementById('kyc-income').value);
+        const city = document.getElementById('city-select').value;
+        let suggestPrice = income * 10; // 財管粗估：房價約年收10倍為健康
+        if(city === "台北市") suggestPrice = income * 15; // 考慮北市特殊性
+        
+        const res = document.getElementById('housing-result');
+        res.classList.remove('hidden');
+        res.innerHTML = `<h3>評估結果：</h3>根據您的年收，在 <b>${city}</b> 的建議購屋總價約為 <b>${suggestPrice} 萬</b>。依照 DBR22 原則，每月還款不應超過 ${(income/12*0.6).toFixed(1)} 萬。`;
+    }
+
+    function calcStudy() {
+        const cost = document.getElementById('study-country').value;
+        const res = document.getElementById('study-result');
+        res.classList.remove('hidden');
+        res.innerHTML = `<h3>教育基金規劃：</h3>預計每年需準備 <b>${cost} 萬</b>。建議從現在起每月分批換匯，並配置 30% 在該國貨幣計價之債券以規避匯率風險。`;
+    }
+</script>
+
+</body>
+</html>
